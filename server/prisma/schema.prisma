@@ -11,3 +11,59 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+enum Role {
+  MEMBER
+  ADMIN
+}
+
+enum KeyStatus {
+  AVAILABLE
+  CHECKED_OUT
+  MAINTENANCE
+}
+
+enum ActionType {
+  CHECK_OUT
+  CHECK_IN
+}
+
+// ① ユーザー（部員）
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  name      String
+  role      Role      @default(MEMBER)
+  pinCode   String
+  createdAt DateTime  @default(now())
+
+  // リレーション
+  histories History[]
+  keys      Key[]     // 現在借りている鍵のリスト
+}
+
+// ② 鍵
+model Key {
+  id            String    @id @default(uuid())
+  name          String
+  status        KeyStatus @default(AVAILABLE)
+  currentUserId String?   // 借りている部員のID（返却済みならNULL）
+  updatedAt     DateTime  @updatedAt
+
+  // リレーション
+  currentUser User?     @relation(fields: [currentUserId], references: [id])
+  histories   History[]
+}
+
+// ③ 利用履歴
+model History {
+  id        String     @id @default(uuid())
+  keyId     String
+  userId    String
+  action    ActionType
+  createdAt DateTime   @default(now())
+
+  // リレーション
+  key  Key  @relation(fields: [keyId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
